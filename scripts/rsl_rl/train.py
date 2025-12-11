@@ -75,14 +75,13 @@ if version.parse(installed_version) < version.parse(RSL_RL_VERSION):
 
 """Rest everything follows."""
 
-import gymnasium as gym
 import logging
 import os
-import torch
 from datetime import datetime
 
-from rsl_rl.runners import DistillationRunner, OnPolicyRunner
-
+import gymnasium as gym
+import isaaclab_tasks  # noqa: F401
+import torch
 from isaaclab.envs import (
     DirectMARLEnv,
     DirectMARLEnvCfg,
@@ -92,12 +91,10 @@ from isaaclab.envs import (
 )
 from isaaclab.utils.dict import print_dict
 from isaaclab.utils.io import dump_yaml
-
 from isaaclab_rl.rsl_rl import RslRlBaseRunnerCfg, RslRlVecEnvWrapper
-
-import isaaclab_tasks  # noqa: F401
 from isaaclab_tasks.utils import get_checkpoint_path
 from isaaclab_tasks.utils.hydra import hydra_task_config
+from rsl_rl.runners import DistillationRunner, OnPolicyRunner
 
 # import logger
 logger = logging.getLogger(__name__)

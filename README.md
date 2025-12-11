@@ -1,23 +1,16 @@
-# Template for Isaac Lab Projects
+# legged_rl_lab
 
 ## Overview
 
-This project/repository serves as a template for building projects or extensions based on Isaac Lab.
-It allows you to develop in an isolated environment, outside of the core Isaac Lab repository.
 
-**Key Features:**
-
-- `Isolation` Work outside the core Isaac Lab repository, ensuring that your development efforts remain self-contained.
-- `Flexibility` This template is set up to allow your code to be run as an extension in Omniverse.
-
-**Keywords:** extension, template, isaaclab
 
 ## Installation
 
-- Install Isaac Lab by following the [installation guide](https://isaac-sim.github.io/IsaacLab/main/source/setup/installation/index.html).
-  We recommend using the conda or uv installation as it simplifies calling Python scripts from the terminal.
+- Install Isaac Lab:
+https://isaac-sim.github.io/IsaacLab/main/source/setup/installation/isaaclab_pip_installation.html
 
-- Clone or copy this project/repository separately from the Isaac Lab installation (i.e. outside the `IsaacLab` directory):
+
+- Clone `legged_rl_lab` separately from the Isaac Lab installation (i.e. outside the `IsaacLab` directory):
 
 - Using a python interpreter that has Isaac Lab installed, install the library in editable mode using:
 
@@ -72,37 +65,15 @@ If everything executes correctly, it should create a file .python.env in the `.v
 The file contains the python paths to all the extensions provided by Isaac Sim and Omniverse.
 This helps in indexing all the python modules for intelligent suggestions while writing code.
 
-### Setup as Omniverse Extension (Optional)
 
-We provide an example UI extension that will load upon enabling your extension defined in `source/legged_rl_lab/legged_rl_lab/ui_extension_example.py`.
+## Project Structure
+https://github.com/isaac-sim/IsaacLabExtensionTemplate/tree/main/source/ext_template/ext_template/tasks/locomotion/velocity/config
 
-To enable your extension, follow these steps:
 
-1. **Add the search path of this project/repository** to the extension manager:
-    - Navigate to the extension manager using `Window` -> `Extensions`.
-    - Click on the **Hamburger Icon**, then go to `Settings`.
-    - In the `Extension Search Paths`, enter the absolute path to the `source` directory of this project/repository.
-    - If not already present, in the `Extension Search Paths`, enter the path that leads to Isaac Lab's extension directory directory (`IsaacLab/source`)
-    - Click on the **Hamburger Icon**, then click `Refresh`.
 
-2. **Search and enable your extension**:
-    - Find your extension under the `Third Party` category.
-    - Toggle it to enable your extension.
 
-## Code formatting
 
-We have a pre-commit template to automatically format your code.
-To install pre-commit:
 
-```bash
-pip install pre-commit
-```
-
-Then you can run pre-commit with:
-
-```bash
-pre-commit run --all-files
-```
 
 ## Troubleshooting
 
@@ -133,3 +104,47 @@ Some examples of packages that can likely be excluded are:
 "<path-to-isaac-sim>/extscache/omni.services.*"     // Services tools
 ...
 ```
+
+
+
+
+
+
+
+## Acknowledgements
+
+### rl_locomotion
+
+* [robot_lab](https://github.com/fan-ziqi/robot_lab)
+* [basic-locomotion-dls-isaaclab](https://github.com/iit-DLSLab/basic-locomotion-dls-isaaclab)
+* [unitree_rl_lab](https://github.com/unitreerobotics/unitree_rl_lab?tab=readme-ov-file#acknowledgements)
+* [LeggedLab](https://github.com/Hellod035/LeggedLab)
+* [parkour_lab](https://github.com/CAI23sbP/Isaaclab_Parkour)
+* [wheel_legged_lab](https://github.com/jaykorea/Isaac-RL-Two-wheel-Legged-Bot)
+
+### AMP/IL_locomotion
+
+* [legged_lab](https://github.com/zitongbai/legged_lab)
+* [MimicKit](https://github.com/xbpeng/MimicKit)
+* [beyondAMP](https://github.com/Renforce-Dynamics/beyondAMP)
+* [motion_imitation](https://github.com/erwincoumans/motion_imitation/tree/master)
+
+
+### motion_tracking_WBC
+
+* [holosoma](https://github.com/amazon-far/holosoma?tab=readme-ov-file)
+
+### loco_mani_WBC
+
+### navigation
+
+* [isaac-go2-ros2](https://github.com/Zhefan-Xu/isaac-go2-ros2)
+* [legged-loco](https://github.com/yang-zj1026/legged-loco)
+* [go2-ros2](https://github.com/abizovnuralem/go2_omniverse)
+
+### mujoco
+
+* [unitree_mujoco](https://github.com/unitreerobotics/unitree_mujoco)
+* [mjlab](https://github.com/mujocolab/mjlab)
+* [mujoco_playground](https://github.com/google-deepmind/mujoco_playground)
+* [FastTD3](https://github.com/younggyoseo/FastTD3)

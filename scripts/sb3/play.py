@@ -61,15 +61,14 @@ simulation_app = app_launcher.app
 
 """Rest everything follows."""
 
-import gymnasium as gym
 import os
 import random
 import time
+
+import gymnasium as gym
+import isaaclab_tasks  # noqa: F401
+import legged_rl_lab.tasks  # noqa: F401
 import torch
-
-from stable_baselines3 import PPO
-from stable_baselines3.common.vec_env import VecNormalize
-
 from isaaclab.envs import (
     DirectMARLEnv,
     DirectMARLEnvCfg,
@@ -79,14 +78,11 @@ from isaaclab.envs import (
 )
 from isaaclab.utils.dict import print_dict
 from isaaclab.utils.pretrained_checkpoint import get_published_pretrained_checkpoint
-
 from isaaclab_rl.sb3 import Sb3VecEnvWrapper, process_sb3_cfg
-
-import isaaclab_tasks  # noqa: F401
 from isaaclab_tasks.utils.hydra import hydra_task_config
 from isaaclab_tasks.utils.parse_cfg import get_checkpoint_path
-
-import legged_rl_lab.tasks  # noqa: F401
+from stable_baselines3 import PPO
+from stable_baselines3.common.vec_env import VecNormalize
 
 
 @hydra_task_config(args_cli.task, args_cli.agent)

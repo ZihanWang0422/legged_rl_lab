@@ -13,7 +13,7 @@ from . import agents
 
 
 gym.register(
-    id="Template-Legged-Rl-Lab-v0",
+    id="AMP-Legged-Rl-Lab-v0",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     disable_env_checker=True,
     kwargs={

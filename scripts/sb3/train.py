@@ -75,17 +75,14 @@ signal.signal(signal.SIGINT, cleanup_pbar)
 
 """Rest everything follows."""
 
-import gymnasium as gym
 import logging
-import numpy as np
 import os
 import random
 from datetime import datetime
 
-from stable_baselines3 import PPO
-from stable_baselines3.common.callbacks import CheckpointCallback, LogEveryNTimesteps
-from stable_baselines3.common.vec_env import VecNormalize
-
+import gymnasium as gym
+import isaaclab_tasks  # noqa: F401
+import numpy as np
 from isaaclab.envs import (
     DirectMARLEnv,
     DirectMARLEnvCfg,
@@ -95,11 +92,11 @@ from isaaclab.envs import (
 )
 from isaaclab.utils.dict import print_dict
 from isaaclab.utils.io import dump_yaml
-
 from isaaclab_rl.sb3 import Sb3VecEnvWrapper, process_sb3_cfg
-
-import isaaclab_tasks  # noqa: F401
 from isaaclab_tasks.utils.hydra import hydra_task_config
+from stable_baselines3 import PPO
+from stable_baselines3.common.callbacks import CheckpointCallback, LogEveryNTimesteps
+from stable_baselines3.common.vec_env import VecNormalize
 
 # import logger
 logger = logging.getLogger(__name__)
