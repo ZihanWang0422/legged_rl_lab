@@ -3,8 +3,11 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""This sub-module contains the functions that are specific to the environment."""
+"""This sub-module contains the MDP functions for AMP locomotion tasks."""
 
-from isaaclab.envs.mdp import *  # noqa: F401, F403
+from isaaclab_tasks.manager_based.locomotion.velocity.mdp import *
+from legged_rl_lab.tasks.locomotion.amp.mdp import *
 
-from .rewards import *  # noqa: F401, F403
+from .observations import *
+from .events import *
+from .rewards import *

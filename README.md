@@ -1,75 +1,52 @@
 # legged_rl_lab
 
+[![IsaacSim](https://img.shields.io/badge/IsaacSim-5.1.0-silver.svg)](https://docs.omniverse.nvidia.com/isaacsim/latest/overview.html)
+[![Isaac Lab](https://img.shields.io/badge/IsaacLab-2.3.0-silver)](https://isaac-sim.github.io/IsaacLab)
+[![Python](https://img.shields.io/badge/python-3.11-blue.svg)](https://docs.python.org/3/whatsnew/3.11.html)
+[![Linux platform](https://img.shields.io/badge/platform-linux--64-orange.svg)](https://releases.ubuntu.com/22.04/)
+[![Windows platform](https://img.shields.io/badge/platform-windows--64-orange.svg)](https://www.microsoft.com/en-us/)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://pre-commit.com/)
+[![License](https://img.shields.io/badge/license-Apache2.0-yellow.svg)](https://opensource.org/license/apache-2-0)
+
 ## Overview
 
 
 
-## Installation
 
-- Install Isaac Lab:
-https://isaac-sim.github.io/IsaacLab/main/source/setup/installation/isaaclab_pip_installation.html
+## 🧰️Setup 
 
+* Use pip to install isaaclab
 
-- Clone `legged_rl_lab` separately from the Isaac Lab installation (i.e. outside the `IsaacLab` directory):
+* Create conda environment
+```bash
+    conda create -n env_isaaclab python=3.11
+    conda activate env_isaaclab
+    pip install -U torch==2.7.0 torchvision==0.22.0 --index-url https://download.pytorch.org/whl/cu128
+    pip install --upgrade pip
+```
 
-- Using a python interpreter that has Isaac Lab installed, install the library in editable mode using:
+* Install isaacsim 5.1 and isaaclab 2.3
+`pip install "isaacsim[all,extscache]==5.1.0" --extra-index-url https://pypi.nvidia.com`
+Verify the installization
+`isaacsim`
 
-    ```bash
-    # use 'PATH_TO_isaaclab.sh|bat -p' instead of 'python' if Isaac Lab is not installed in Python venv or conda
-    python -m pip install -e source/legged_rl_lab
+* Install the project
+`python -m pip install -e source/legged_rl_lab`
 
-- Verify that the extension is correctly installed by:
+* List the tasks available in the project
+`python scripts/list_envs.py`
 
-    - Listing the available tasks:
+---
 
-        Note: It the task name changes, it may be necessary to update the search pattern `"Template-"`
-        (in the `scripts/list_envs.py` file) so that it can be listed.
-
-        ```bash
-        # use 'FULL_PATH_TO_isaaclab.sh|bat -p' instead of 'python' if Isaac Lab is not installed in Python venv or conda
-        python scripts/list_envs.py
-        ```
-
-    - Running a task:
-
-        ```bash
-        # use 'FULL_PATH_TO_isaaclab.sh|bat -p' instead of 'python' if Isaac Lab is not installed in Python venv or conda
-        python scripts/<RL_LIBRARY>/train.py --task=<TASK_NAME>
-        ```
-
-    - Running a task with dummy agents:
-
-        These include dummy agents that output zero or random agents. They are useful to ensure that the environments are configured correctly.
-
-        - Zero-action agent
-
-            ```bash
-            # use 'FULL_PATH_TO_isaaclab.sh|bat -p' instead of 'python' if Isaac Lab is not installed in Python venv or conda
-            python scripts/zero_agent.py --task=<TASK_NAME>
-            ```
-        - Random-action agent
-
-            ```bash
-            # use 'FULL_PATH_TO_isaaclab.sh|bat -p' instead of 'python' if Isaac Lab is not installed in Python venv or conda
-            python scripts/random_agent.py --task=<TASK_NAME>
-            ```
-
-### Set up IDE (Optional)
-
-To setup the IDE, please follow these instructions:
-
-- Run VSCode Tasks, by pressing `Ctrl+Shift+P`, selecting `Tasks: Run Task` and running the `setup_python_env` in the drop down menu.
-  When running this task, you will be prompted to add the absolute path to your Isaac Sim installation.
-
-If everything executes correctly, it should create a file .python.env in the `.vscode` directory.
-The file contains the python paths to all the extensions provided by Isaac Sim and Omniverse.
-This helps in indexing all the python modules for intelligent suggestions while writing code.
+## 🚀Train
 
 
-## Project Structure
-https://github.com/isaac-sim/IsaacLabExtensionTemplate/tree/main/source/ext_template/ext_template/tasks/locomotion/velocity/config
 
 
+## Sim2sim
+
+
+## Sim2real
 
 
 
@@ -128,6 +105,7 @@ Some examples of packages that can likely be excluded are:
 * [MimicKit](https://github.com/xbpeng/MimicKit)
 * [beyondAMP](https://github.com/Renforce-Dynamics/beyondAMP)
 * [motion_imitation](https://github.com/erwincoumans/motion_imitation/tree/master)
+* [ManagerAMP](https://github.com/XinyuSong123/ManagerAMP)
 
 
 ### motion_tracking_WBC

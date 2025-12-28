@@ -82,5 +82,25 @@
     },
     // Python extra paths
     // Note: this is filled up when vscode is set up for the first time
-    "python.analysis.extraPaths": []
+    // The ${env:CONDA_PREFIX} allows Pylance to find pip-installed isaaclab in conda environments
+    "python.analysis.extraPaths": [
+        "${env:CONDA_PREFIX}/lib/python3.11/site-packages/isaaclab/source/isaaclab",
+        "${env:CONDA_PREFIX}/lib/python3.11/site-packages/isaaclab/source/isaaclab_tasks"
+    ],
+    "python.autoComplete.extraPaths": [
+        "${env:CONDA_PREFIX}/lib/python3.11/site-packages/isaaclab/source/isaaclab",
+        "${env:CONDA_PREFIX}/lib/python3.11/site-packages/isaaclab/source/isaaclab_tasks"
+    ],
+    // Load Python environment variables from .python.env
+    "python.envFile": "${workspaceFolder}/.vscode/.python.env",
+    // Terminal environment variables for different platforms
+    "terminal.integrated.env.linux": {
+        "PYTHONPATH": "${workspaceFolder}/../IsaacLab/source/isaaclab:${workspaceFolder}/../IsaacLab/source/isaaclab_tasks:${workspaceFolder}/source:${env:PYTHONPATH}"
+    },
+    "terminal.integrated.env.osx": {
+        "PYTHONPATH": "${workspaceFolder}/../IsaacLab/source/isaaclab:${workspaceFolder}/../IsaacLab/source/isaaclab_tasks:${workspaceFolder}/source:${env:PYTHONPATH}"
+    },
+    "terminal.integrated.env.windows": {
+        "PYTHONPATH": "${workspaceFolder}/../IsaacLab/source/isaaclab;${workspaceFolder}/../IsaacLab/source/isaaclab_tasks;${workspaceFolder}/source;${env:PYTHONPATH}"
+    }
 }

@@ -1,11 +1,15 @@
-seed: 42
+# Copyright (c) 2022-2025, The Isaac Lab Project Developers
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# SKRL AMP configuration for Go1 locomotion
 
+seed: 42
 
 # Models are instantiated using skrl's model instantiator utility
 # https://skrl.readthedocs.io/en/latest/api/utils/model_instantiators.html
 models:
   separate: True
-  policy:  # see gaussian_model parameters
+  policy:  # Gaussian policy
     class: GaussianMixin
     clip_actions: False
     clip_log_std: True
@@ -16,28 +20,27 @@ models:
     network:
       - name: net
         input: OBSERVATIONS
-        layers: [1024, 512]
-        activations: relu
+        layers: [512, 256, 128]
+        activations: elu
     output: ACTIONS
-  value:  # see deterministic_model parameters
+  value:  # Value function
     class: DeterministicMixin
     clip_actions: False
     network:
       - name: net
         input: OBSERVATIONS
-        layers: [1024, 512]
-        activations: relu
+        layers: [512, 256, 128]
+        activations: elu
     output: ONE
-  discriminator:  # see deterministic_model parameters
+  discriminator:  # AMP discriminator
     class: DeterministicMixin
     clip_actions: False
     network:
       - name: net
-        input: OBSERVATIONS
+        input: OBSERVATIONS  # Will receive AMP observations
         layers: [1024, 512]
         activations: relu
     output: ONE
-
 
 # Rollout memory
 # https://skrl.readthedocs.io/en/latest/api/memories/random.html
@@ -46,28 +49,25 @@ memory:
   memory_size: -1  # automatically determined (same as agent:rollouts)
 
 # AMP memory (reference motion dataset)
-# https://skrl.readthedocs.io/en/latest/api/memories/random.html
 motion_dataset:
   class: RandomMemory
   memory_size: 200000
 
-# AMP memory (preventing discriminator overfitting)
-# https://skrl.readthedocs.io/en/latest/api/memories/random.html
+# AMP replay buffer (preventing discriminator overfitting)
 reply_buffer:
   class: RandomMemory
   memory_size: 1000000
 
-
-# AMP agent configuration (field names are from AMP_DEFAULT_CONFIG)
+# AMP agent configuration
 # https://skrl.readthedocs.io/en/latest/api/agents/amp.html
 agent:
   class: AMP
-  rollouts: 16
-  learning_epochs: 6
-  mini_batches: 2
+  rollouts: 24
+  learning_epochs: 5
+  mini_batches: 4
   discount_factor: 0.99
   lambda: 0.95
-  learning_rate: 5.0e-05
+  learning_rate: 1.0e-03
   learning_rate_scheduler: null
   learning_rate_scheduler_kwargs: null
   state_preprocessor: RunningStandardScaler
@@ -78,34 +78,32 @@ agent:
   amp_state_preprocessor_kwargs: null
   random_timesteps: 0
   learning_starts: 0
-  grad_norm_clip: 0.0
+  grad_norm_clip: 1.0
   ratio_clip: 0.2
   value_clip: 0.2
   clip_predicted_values: True
-  entropy_loss_scale: 0.0
-  value_loss_scale: 2.5
+  entropy_loss_scale: 0.01
+  value_loss_scale: 1.0
   discriminator_loss_scale: 5.0
   amp_batch_size: 512
-  task_reward_weight: 0.0
-  style_reward_weight: 1.0
+  task_reward_weight: 0.3  # amp_task_reward_lerp
+  style_reward_weight: 0.7  # 1 - amp_task_reward_lerp
   discriminator_batch_size: 4096
-  discriminator_reward_scale: 2.0
+  discriminator_reward_scale: 2.0  # amp_reward_coef
   discriminator_logit_regularization_scale: 0.05
   discriminator_gradient_penalty_scale: 5.0
   discriminator_weight_decay_scale: 1.0e-04
-  # rewards_shaper_scale: 1.0
   time_limit_bootstrap: False
-  # logging and checkpoint
+  # Logging and checkpoint
   experiment:
-    directory: "humanoid_amp_run"
+    directory: "go1_amp"
     experiment_name: ""
     write_interval: auto
-    checkpoint_interval: auto
-
+    checkpoint_interval: 500
 
 # Sequential trainer
 # https://skrl.readthedocs.io/en/latest/api/trainers/sequential.html
 trainer:
   class: SequentialTrainer
-  timesteps: 80000
+  timesteps: 500000
   environment_info: log
