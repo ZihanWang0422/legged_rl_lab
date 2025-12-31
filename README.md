@@ -11,16 +11,14 @@
 ## Overview
 
 
-
-
 ## 🧰️Setup 
 
 * Use pip to install isaaclab
 
 * Create conda environment
 ```bash
-    conda create -n env_isaaclab python=3.11
-    conda activate env_isaaclab
+    conda create -n env_isaaclab1 python=3.11
+    conda activate env_isaaclab1
     pip install -U torch==2.7.0 torchvision==0.22.0 --index-url https://download.pytorch.org/whl/cu128
     pip install --upgrade pip
 ```
@@ -40,6 +38,8 @@ Verify the installization
 
 ## 🚀Train
 
+* Run a task
+`python scripts/<specific-rl-library>/train.py --task=<Task-Name>`   
 
 
 

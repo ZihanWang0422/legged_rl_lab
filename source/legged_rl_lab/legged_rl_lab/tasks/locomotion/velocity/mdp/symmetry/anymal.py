@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2025 Ziqi Fan
+# SPDX-License-Identifier: Apache-2.0
+
 # Copyright (c) 2022-2025, The Isaac Lab Project Developers (https://github.com/isaac-sim/IsaacLab/blob/main/CONTRIBUTORS.md).
 # All rights reserved.
 #
@@ -107,24 +110,18 @@ def _transform_policy_obs_left_right(env: ManagerBasedRLEnv, obs: torch.Tensor) 
     # copy observation tensor
     obs = obs.clone()
     device = obs.device
-    # lin vel
-    obs[:, :3] = obs[:, :3] * torch.tensor([1, -1, 1], device=device)
     # ang vel
-    obs[:, 3:6] = obs[:, 3:6] * torch.tensor([-1, 1, -1], device=device)
+    obs[:, 0:3] = obs[:, 0:3] * torch.tensor([-1, 1, -1], device=device)
     # projected gravity
-    obs[:, 6:9] = obs[:, 6:9] * torch.tensor([1, -1, 1], device=device)
+    obs[:, 3:6] = obs[:, 3:6] * torch.tensor([1, -1, 1], device=device)
     # velocity command
-    obs[:, 9:12] = obs[:, 9:12] * torch.tensor([1, -1, -1], device=device)
+    obs[:, 6:9] = obs[:, 6:9] * torch.tensor([1, -1, -1], device=device)
     # joint pos
-    obs[:, 12:24] = _switch_anymal_joints_left_right(obs[:, 12:24])
+    obs[:, 9:21] = _switch_anymal_joints_left_right(obs[:, 9:21])
     # joint vel
-    obs[:, 24:36] = _switch_anymal_joints_left_right(obs[:, 24:36])
+    obs[:, 21:33] = _switch_anymal_joints_left_right(obs[:, 21:33])
     # last actions
-    obs[:, 36:48] = _switch_anymal_joints_left_right(obs[:, 36:48])
-
-    # note: this is hard-coded for grid-pattern of ordering "xy" and size (1.6, 1.0)
-    if "height_scan" in env.observation_manager.active_terms["policy"]:
-        obs[:, 48:235] = obs[:, 48:235].view(-1, 11, 17).flip(dims=[1]).view(-1, 11 * 17)
+    obs[:, 33:45] = _switch_anymal_joints_left_right(obs[:, 33:45])
 
     return obs
 
@@ -148,24 +145,18 @@ def _transform_policy_obs_front_back(env: ManagerBasedRLEnv, obs: torch.Tensor) 
     # copy observation tensor
     obs = obs.clone()
     device = obs.device
-    # lin vel
-    obs[:, :3] = obs[:, :3] * torch.tensor([-1, 1, 1], device=device)
     # ang vel
-    obs[:, 3:6] = obs[:, 3:6] * torch.tensor([1, -1, -1], device=device)
+    obs[:, 0:3] = obs[:, 0:3] * torch.tensor([1, -1, -1], device=device)
     # projected gravity
-    obs[:, 6:9] = obs[:, 6:9] * torch.tensor([-1, 1, 1], device=device)
+    obs[:, 3:6] = obs[:, 3:6] * torch.tensor([-1, 1, 1], device=device)
     # velocity command
-    obs[:, 9:12] = obs[:, 9:12] * torch.tensor([-1, 1, -1], device=device)
+    obs[:, 6:9] = obs[:, 6:9] * torch.tensor([-1, 1, -1], device=device)
     # joint pos
-    obs[:, 12:24] = _switch_anymal_joints_front_back(obs[:, 12:24])
+    obs[:, 9:21] = _switch_anymal_joints_front_back(obs[:, 9:21])
     # joint vel
-    obs[:, 24:36] = _switch_anymal_joints_front_back(obs[:, 24:36])
+    obs[:, 21:33] = _switch_anymal_joints_front_back(obs[:, 21:33])
     # last actions
-    obs[:, 36:48] = _switch_anymal_joints_front_back(obs[:, 36:48])
-
-    # note: this is hard-coded for grid-pattern of ordering "xy" and size (1.6, 1.0)
-    if "height_scan" in env.observation_manager.active_terms["policy"]:
-        obs[:, 48:235] = obs[:, 48:235].view(-1, 11, 17).flip(dims=[2]).view(-1, 11 * 17)
+    obs[:, 33:45] = _switch_anymal_joints_front_back(obs[:, 33:45])
 
     return obs
 

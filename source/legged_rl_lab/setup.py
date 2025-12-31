@@ -1,13 +1,8 @@
-# Copyright (c) 2022-2025, The Isaac Lab Project Developers (https://github.com/isaac-sim/IsaacLab/blob/main/CONTRIBUTORS.md).
-# All rights reserved.
-#
-# SPDX-License-Identifier: BSD-3-Clause
-
-"""Installation script for the 'legged_rl_lab' python package."""
+"""Installation script for the 'unitree_rl_lab' python package."""
 
 import os
-
 import toml
+
 from setuptools import setup
 
 # Obtain the extension data from the extension.toml file
@@ -32,15 +27,12 @@ setup(
     description=EXTENSION_TOML_DATA["package"]["description"],
     keywords=EXTENSION_TOML_DATA["package"]["keywords"],
     install_requires=INSTALL_REQUIRES,
-    license="Apache-2.0",
+    license="Apache 2.0",
     include_package_data=True,
-    python_requires=">=3.10",
+    python_requires=">=3.11",
     classifiers=[
         "Natural Language :: English",
-        "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
-        "Isaac Sim :: 4.5.0",
-        "Isaac Sim :: 5.0.0",
         "Isaac Sim :: 5.1.0",
     ],
     zip_safe=False,
