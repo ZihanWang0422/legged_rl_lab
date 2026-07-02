@@ -99,6 +99,8 @@ def list_to_str(vec):
 
 
 class TerrainGenerator:
+    """Build a MuJoCo terrain scene by appending geoms to an input XML scene."""
+
     def __init__(self, robot=ROBOT, input_scene_path=None, output_scene_path=None) -> None:
         paths = default_paths(robot)
         self.robot = robot
@@ -142,7 +144,8 @@ class TerrainGenerator:
         )
         return x_start + x_size
 
-    def AddStairsWithDown(self, init_pos=[1.0, 0.0, 0.0], yaw=0.0, width=0.8, height=0.12, length=1.5, stair_nums=10, top_width=0.8):
+    def AddStairsWithDown(self, init_pos=[1.0, 0.0, 0.0], yaw=0.0, width=0.8, height=0.30, length=3.0, stair_nums=10, top_width=0.8):
+        """Legacy up-and-down stair set: climb, optional flat top, then descend."""
         local_pos = [0.0, 0.0, -0.5 * height]
         for _ in range(stair_nums):
             local_pos[0] += width
@@ -164,7 +167,8 @@ class TerrainGenerator:
             self.AddBox([x + init_pos[0], y + init_pos[1], local_pos[2] + init_pos[2]], [0.0, 0.0, yaw], [width, length, height])
             local_pos[0] += width
 
-    def AddStairsUpWithPlatform(self, init_pos=[1.0, 0.0, 0.0], yaw=0.0, width=0.30, height=0.12, length=1.6, stair_nums=10, top_width=1.2):
+    def AddStairsUpWithPlatform(self, init_pos=[1.0, 0.0, 0.0], yaw=0.0, width=0.30, height=0.30, length=3.2, stair_nums=10, top_width=1.2):
+        """Main entry stairs: 30 cm-high steps climbing from floor to deck height."""
         cursor = 0.0
         for i in range(stair_nums):
             top_height = (i + 1) * height
@@ -173,7 +177,8 @@ class TerrainGenerator:
             cursor = self._add_top_box(init_pos, yaw, cursor, top_width, 0.0, length, stair_nums * height, height, name="ame_stair_top")
         return {"next_x": cursor, "deck_height": stair_nums * height, "lane_width": length}
 
-    def AddSuspendStairs(self, init_pos=[1.0, 0.0, 0.0], yaw=1.0, width=0.4, height=0.1, length=1.5, gap=0.1, stair_nums=10):
+    def AddSuspendStairs(self, init_pos=[1.0, 0.0, 0.0], yaw=1.0, width=0.4, height=0.30, length=3.0, gap=0.1, stair_nums=10):
+        """Legacy floating stairs: separated thin boxes with visible vertical gaps."""
         local_pos = [0.0, 0.0, -0.5 * height]
         for _ in range(stair_nums):
             local_pos[0] += width
@@ -183,6 +188,7 @@ class TerrainGenerator:
             self.AddBox([x + init_pos[0], y + init_pos[1], local_pos[2] + init_pos[2]], [0.0, 0.0, yaw], [width, length, solid_height])
 
     def AddRoughGround(self, init_pos=[1.0, 0.0, 0.0], euler=[0.0, -0.0, 0.0], nums=[10, 10], box_size=[0.5, 0.5, 0.5], box_euler=[0.0, 0.0, 0.0], separation=[0.2, 0.2], box_size_rand=[0.05, 0.05, 0.05], box_euler_rand=[0.2, 0.2, 0.2], separation_rand=[0.05, 0.05]):
+        """Legacy rough terrain: a grid of randomly sized and tilted boxes."""
         local_pos = [0.0, 0.0, -0.5 * box_size[2]]
         new_separation = np.array(separation) + np.array(separation_rand) * np.random.uniform(-1.0, 1.0, 2)
         for _ in range(nums[0]):
@@ -199,7 +205,8 @@ class TerrainGenerator:
     def _add_label_platform(self, init_pos, yaw, start_x, label, deck_height, lane_width, thickness):
         return self._add_top_box(init_pos, yaw, start_x, 0.45, 0.0, lane_width, deck_height, thickness, name=f"ame_{label}_entry")
 
-    def AddAMEAlternateColumnStakes(self, init_pos, yaw, start_x, deck_height, lane_width=1.6, segment_length=4.0, stake_side=0.20, stake_gap=0.30, column_gap=0.30, thickness=0.18):
+    def AddAMEAlternateColumnStakes(self, init_pos, yaw, start_x, deck_height, lane_width=3.2, segment_length=4.0, stake_side=0.40, stake_gap=0.30, column_gap=0.60, thickness=0.18):
+        """A: alternating square stakes, one left then one right along the lane."""
         cursor = self._add_label_platform(init_pos, yaw, start_x, "A_alternate_stakes", deck_height, lane_width, thickness)
         step = stake_side + stake_gap
         lateral = 0.5 * (stake_side + column_gap)
@@ -221,7 +228,8 @@ class TerrainGenerator:
             index += 1
         return start_x + segment_length
 
-    def AddAMEDoubleColumnStakes(self, init_pos, yaw, start_x, deck_height, lane_width=1.6, segment_length=4.0, stake_side=0.20, stake_gap=0.30, column_gap=0.30, thickness=0.18):
+    def AddAMEDoubleColumnStakes(self, init_pos, yaw, start_x, deck_height, lane_width=3.2, segment_length=4.0, stake_side=0.40, stake_gap=0.30, column_gap=0.60, thickness=0.18):
+        """B: paired square stakes in two columns with a center channel."""
         cursor = self._add_label_platform(init_pos, yaw, start_x, "B_double_stakes", deck_height, lane_width, thickness)
         step = stake_side + stake_gap
         lateral = 0.5 * (stake_side + column_gap)
@@ -243,28 +251,30 @@ class TerrainGenerator:
             index += 1
         return start_x + segment_length
 
-    def AddAMESteppingStones(self, init_pos, yaw, start_x, deck_height, lane_width=1.6, segment_length=4.0, stone_width=0.35, stone_gap=0.18, thickness=0.18):
-        cursor = self._add_label_platform(init_pos, yaw, start_x, "C_stepping_stones", deck_height, lane_width, thickness)
-        step = stone_width + stone_gap
-        index = 0
-        while cursor + stone_width <= start_x + segment_length:
-            y_center = 0.18 if index % 2 == 0 else -0.18
-            self._add_top_box(
-                init_pos,
-                yaw,
-                cursor,
-                stone_width,
-                y_center,
-                stone_width,
-                deck_height,
-                thickness,
-                name=f"ame_C_stepping_stone_{index:02d}",
-            )
-            cursor += step
-            index += 1
-        return start_x + segment_length
+    # def AddAMESteppingStones(self, init_pos, yaw, start_x, deck_height, lane_width=3.2, segment_length=4.0, stone_width=0.30, stone_gap=0.18, thickness=0.18):
+    #     """C: square stepping stones that alternate slightly left and right."""
+    #     cursor = self._add_label_platform(init_pos, yaw, start_x, "C_stepping_stones", deck_height, lane_width, thickness)
+    #     step = stone_width + stone_gap
+    #     index = 0
+    #     while cursor + stone_width <= start_x + segment_length:
+    #         y_center = 0.18 if index % 2 == 0 else -0.18
+    #         self._add_top_box(
+    #             init_pos,
+    #             yaw,
+    #             cursor,
+    #             stone_width,
+    #             y_center,
+    #             stone_width,
+    #             deck_height,
+    #             thickness,
+    #             name=f"ame_C_stepping_stone_{index:02d}",
+    #         )
+    #         cursor += step
+    #         index += 1
+    #     return start_x + segment_length
 
-    def AddAMEStoneBridge(self, init_pos, yaw, start_x, deck_height, lane_width=1.6, segment_length=4.0, stone_width=0.35, stone_length=0.75, stone_distance=0.22, thickness=0.18):
+    def AddAMEStoneBridge(self, init_pos, yaw, start_x, deck_height, lane_width=3.2, segment_length=4.0, stone_width=0.30, stone_length=0.30, stone_distance=0.22, thickness=0.18):
+        """D: square stones in a straight center line with short gaps between them."""
         cursor = self._add_label_platform(init_pos, yaw, start_x, "D_stone_bridge", deck_height, lane_width, thickness)
         step = stone_length + stone_distance
         index = 0
@@ -284,7 +294,8 @@ class TerrainGenerator:
             index += 1
         return start_x + segment_length
 
-    def AddAMEConcentricGaps(self, init_pos, yaw, start_x, deck_height, lane_width=1.6, segment_length=4.0, ground_width=0.50, gap_width=0.50, thickness=0.18):
+    def AddAMEConcentricGaps(self, init_pos, yaw, start_x, deck_height, lane_width=3.2, segment_length=8.0, ground_width=1.50, gap_width=0.80, second_gap_width=0.80, thickness=0.18):
+        """E: full-width deck blocks separated by repeated 0.8 m gaps."""
         cursor = self._add_label_platform(init_pos, yaw, start_x, "E_concentric_gaps", deck_height, lane_width, thickness)
         index = 0
         end_x = start_x + segment_length
@@ -301,11 +312,13 @@ class TerrainGenerator:
                 thickness,
                 name=f"ame_E_gap_ground_{index:02d}",
             )
-            cursor += ground_width + gap_width
+            current_gap_width = second_gap_width if index == 1 else gap_width
+            cursor += ground_width + current_gap_width
             index += 1
         return end_x
 
-    def AddAMEStairsUpSegment(self, init_pos, yaw, start_x, deck_height, lane_width=1.6, stair_nums=6, step_width=0.30, step_height=0.16, thickness=0.18):
+    def AddAMEStairsUpSegment(self, init_pos, yaw, start_x, deck_height, lane_width=3.2, stair_nums=6, step_width=0.30, step_height=0.20, thickness=0.18):
+        """F: stairs that climb from the main deck to a higher deck."""
         cursor = self._add_label_platform(init_pos, yaw, start_x, "F_stairs_up", deck_height, lane_width, thickness)
         for index in range(stair_nums):
             top_height = deck_height + (index + 1) * step_height
@@ -322,10 +335,13 @@ class TerrainGenerator:
             )
         return cursor, deck_height + stair_nums * step_height
 
-    def AddAMEStairsDownSegment(self, init_pos, yaw, start_x, deck_height, lane_width=1.6, stair_nums=6, step_width=0.30, step_height=0.16, thickness=0.18):
+    def AddAMEStairsDownSegment(self, init_pos, yaw, start_x, deck_height, lane_width=3.2, stair_nums=6, step_width=0.30, step_height=0.20, thickness=0.18):
+        """G: solid connected stairs that descend back to the main deck height."""
         cursor = self._add_label_platform(init_pos, yaw, start_x, "G_stairs_down", deck_height, lane_width, thickness)
+        bottom_height = deck_height - stair_nums * step_height
         for index in range(stair_nums):
             top_height = deck_height - (index + 1) * step_height
+            solid_height = top_height - bottom_height + thickness
             cursor = self._add_top_box(
                 init_pos,
                 yaw,
@@ -334,19 +350,20 @@ class TerrainGenerator:
                 0.0,
                 lane_width,
                 top_height,
-                thickness,
+                solid_height,
                 name=f"ame_G_stairs_down_{index:02d}",
             )
-        return cursor, deck_height - stair_nums * step_height
+        return cursor, bottom_height
 
-    def AddAMERadialPlankBridge(self, init_pos, yaw, start_x, deck_height, lane_width=1.6, segment_length=4.0, plank_width=0.19, thickness=0.18):
+    def AddAMERadialPlankBridge(self, init_pos, yaw, start_x, deck_height, lane_width=3.2, segment_length=4.0, plank_width=0.38, thickness=0.18):
+        """H: a square center platform followed by a narrow straight plank."""
         cursor = self._add_label_platform(init_pos, yaw, start_x, "H_radial_plank_bridge", deck_height, lane_width, thickness)
         platform_len = 0.75
         cursor = self._add_top_box(init_pos, yaw, cursor, platform_len, 0.0, platform_len, deck_height, thickness, name="ame_H_center_platform")
         cursor = self._add_top_box(init_pos, yaw, cursor, segment_length - platform_len, 0.0, plank_width, deck_height, thickness, name="ame_H_forward_plank")
         return cursor
 
-    def AddAMETerrainSequence(self, init_pos=[1.0, 0.0, 0.0], yaw=0.0, start_x=0.0, deck_height=1.0, lane_width=1.6, connector_length=0.8, thickness=0.18):
+    def AddAMETerrainSequence(self, init_pos=[1.0, 0.0, 0.0], yaw=0.0, start_x=0.0, deck_height=1.0, lane_width=3.2, connector_length=0.8, thickness=0.18):
         """Sequential parkour course laid out along +x at constant deck height.
 
         Layout after the initial stair climb (easiest → hardest, with a single
@@ -356,7 +373,6 @@ class TerrainGenerator:
                       → B (double stakes)  [continuous columns, narrow gaps]
                       → D (stone bridge)   [single-plank style, long stones]
                       → C (stepping stones)
-                      → A (alternate stakes)
                       → F (stairs up) → G (stairs down)
                       → H (radial plank bridge)
                       → final platform
@@ -369,10 +385,8 @@ class TerrainGenerator:
         cursor = self._add_top_box(init_pos, yaw, cursor, connector_length, 0.0, lane_width, deck_height, thickness, name="ame_connector_B_D")
         cursor = self.AddAMEStoneBridge(init_pos, yaw, cursor, deck_height, lane_width=lane_width, thickness=thickness)
         cursor = self._add_top_box(init_pos, yaw, cursor, connector_length, 0.0, lane_width, deck_height, thickness, name="ame_connector_D_C")
-        cursor = self.AddAMESteppingStones(init_pos, yaw, cursor, deck_height, lane_width=lane_width, thickness=thickness)
-        cursor = self._add_top_box(init_pos, yaw, cursor, connector_length, 0.0, lane_width, deck_height, thickness, name="ame_connector_C_A")
-        cursor = self.AddAMEAlternateColumnStakes(init_pos, yaw, cursor, deck_height, lane_width=lane_width, thickness=thickness)
-        cursor = self._add_top_box(init_pos, yaw, cursor, connector_length, 0.0, lane_width, deck_height, thickness, name="ame_connector_A_F")
+        # cursor = self.AddAMESteppingStones(init_pos, yaw, cursor, deck_height, lane_width=lane_width, thickness=thickness)
+        cursor = self._add_top_box(init_pos, yaw, cursor, connector_length, 0.0, lane_width, deck_height, thickness, name="ame_connector_C_F")
         cursor, high_deck = self.AddAMEStairsUpSegment(init_pos, yaw, cursor, deck_height, lane_width=lane_width, thickness=thickness)
         cursor = self._add_top_box(init_pos, yaw, cursor, connector_length, 0.0, lane_width, high_deck, thickness, name="ame_connector_F_G")
         cursor, deck_after_down = self.AddAMEStairsDownSegment(init_pos, yaw, cursor, high_deck, lane_width=lane_width, thickness=thickness)
@@ -384,6 +398,7 @@ class TerrainGenerator:
         return {"next_x": cursor, "deck_height": deck_height, "lane_width": lane_width}
 
     def AddPerlinHeighField(self, position=[1.0, 0.0, 0.0], euler=[0.0, -0.0, 0.0], size=[1.0, 1.0], height_scale=0.2, negative_height=0.2, image_width=128, img_height=128, smooth=100.0, perlin_octaves=6, perlin_persistence=0.5, perlin_lacunarity=2.0, output_hfield_image="height_field.png"):
+        """Legacy heightfield: generate a Perlin-noise PNG and reference it in MJCF."""
         try:
             noise_module = __import__("noise")
         except ImportError as exc:
@@ -417,6 +432,7 @@ class TerrainGenerator:
         geo.attrib["quat"] = list_to_str(quat)
 
     def AddHeighFieldFromImage(self, position=[1.0, 0.0, 0.0], euler=[0.0, -0.0, 0.0], size=[2.0, 1.6], height_scale=0.02, negative_height=0.1, input_img=None, output_hfield_image="height_field.png", image_scale=[1.0, 1.0], invert_gray=False):
+        """Legacy heightfield: convert an input image to a MuJoCo heightfield."""
         input_image = cv2.imread(input_img)
         if input_image is None:
             raise FileNotFoundError(f"Cannot read image file: {input_img}")
@@ -464,7 +480,7 @@ def main():
     np.random.seed(args.seed)
     tg = TerrainGenerator(args.robot, input_scene_path=args.input_scene, output_scene_path=args.output_scene)
 
-    stair = tg.AddStairsUpWithPlatform(init_pos=[1.5, 0.0, 0.0], yaw=0.0, width=0.30, height=0.16, length=1.6, stair_nums=10, top_width=1.2)
+    stair = tg.AddStairsUpWithPlatform(init_pos=[1.5, 0.0, 0.0], yaw=0.0, width=0.30, height=0.30, length=3.2, stair_nums=10, top_width=1.2)
     tg.AddAMETerrainSequence(
         init_pos=[1.5, 0.0, 0.0],
         yaw=0.0,

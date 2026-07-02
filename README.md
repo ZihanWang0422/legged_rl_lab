@@ -465,7 +465,7 @@ python scripts/rsl_rl/play.py \
   --num_envs 2 \
   #finetune ckpt
   #--ckpt model_.pt
-  --ckpt model_19500.pt \
+  --ckpt model_48500.pt \
   --vis_attention \
   --save_attention_weights
 ```

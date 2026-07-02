@@ -46,7 +46,12 @@ parser.add_argument("--save_attention_weights", action="store_true", default=Fal
 parser.add_argument("--print_attention_stats", action="store_true", default=False, help="Print attention statistics every N steps.")
 parser.add_argument("--attention_print_interval", type=int, default=50, help="Interval for printing attention stats (steps).")
 parser.add_argument("--motion_file", type=str, default=None, help="Path to motion NPZ file (required for Tracking tasks).")
-parser.add_argument("--ckpt", type=str, default=None, help="Name of a checkpoint file under the ckpt/ directory (e.g. 'model.pt').")
+parser.add_argument(
+    "--ckpt",
+    type=str,
+    default=None,
+    help="Checkpoint file. Accepts a path or a file name under the ckpt/ directory (e.g. 'model.pt').",
+)
 # append RSL-RL cli arguments
 cli_args.add_rsl_rl_args(parser)
 # append AppLauncher cli args
@@ -67,6 +72,7 @@ simulation_app = app_launcher.app
 """Rest everything follows."""
 
 import gymnasium as gym
+import numpy as np
 import time
 import torch
 
@@ -127,7 +133,9 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
             print("[INFO] Unfortunately a pre-trained checkpoint is currently unavailable for this task.")
             return
     elif args_cli.ckpt:
-        ckpt_path = os.path.join("ckpt", args_cli.ckpt)
+        ckpt_path = args_cli.ckpt
+        if not os.path.exists(ckpt_path):
+            ckpt_path = os.path.join("ckpt", args_cli.ckpt)
         if not os.path.exists(ckpt_path):
             raise FileNotFoundError(f"Checkpoint not found: {ckpt_path}")
         resume_path = os.path.abspath(ckpt_path)
@@ -456,7 +464,8 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
             # env stepping
             obs, _, dones, _ = env.step(actions)
             # reset recurrent states for episodes that have terminated
-            policy_nn.reset(dones)
+            if hasattr(policy_nn, "reset"):
+                policy_nn.reset(dones)
 
             # --- attention handling ---
             attn_w = getattr(policy_nn, "last_attention_weights", None)
@@ -474,8 +483,8 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
             if args_cli.vis_attention and attention_visualizer is not None and attn_w is not None:
                 _vis_attention_on_terrain(attn_w, env, timestep)
 
+        timestep += 1
         if args_cli.video:
-            timestep += 1
             # Exit the play loop after recording one video
             if timestep == args_cli.video_length:
                 break
@@ -487,7 +496,6 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
 
     # Save attention weights at end
     if args_cli.save_attention_weights and len(attention_weights_list) > 0:
-        import numpy as np
         save_path = os.path.join(os.path.dirname(resume_path), "attention_weights_play.npy")
         np.save(save_path, np.array(attention_weights_list))
         print(f"[INFO] Attention weights saved to: {save_path} (shape: {np.array(attention_weights_list).shape})")

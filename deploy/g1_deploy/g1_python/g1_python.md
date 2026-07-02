@@ -321,7 +321,7 @@ python sim2real_mimic.py \
 ```bash
 python sim2sim_attention.py \
   --config g1_attention.yaml \
-  --model g1_attention.onnx \
+  --model g1_attention2.onnx \
   --input gamepad \
   --gamepad_type gamesir \
   --show_rays

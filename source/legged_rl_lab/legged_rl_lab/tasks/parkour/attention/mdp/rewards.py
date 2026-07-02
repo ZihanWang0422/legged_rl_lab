@@ -215,6 +215,89 @@ def air_time_variance_penalty(
         torch.clip(last_contact_time, max=0.5), dim=1
     )
 
+def feet_air_time_positive_biped(env, command_name: str, threshold: float, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
+    """Reward long steps taken by the feet for bipeds.
+
+    This function rewards the agent for taking steps up to a specified threshold and also keep one foot at
+    a time in the air.
+
+    If the commands are small (i.e. the agent is not supposed to take a step), then the reward is zero.
+    """
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    # compute the reward
+    air_time = contact_sensor.data.current_air_time[:, sensor_cfg.body_ids]
+    contact_time = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids]
+    in_contact = contact_time > 0.0
+    in_mode_time = torch.where(in_contact, contact_time, air_time)
+    single_stance = torch.sum(in_contact.int(), dim=1) == 1
+    reward = torch.min(torch.where(single_stance.unsqueeze(-1), in_mode_time, 0.0), dim=1)[0]
+    reward = torch.clamp(reward, max=threshold)
+    # no reward for zero command
+    reward *= torch.norm(env.command_manager.get_command(command_name)[:, :2], dim=1) > 0.1
+    return reward
+
+def feet_lateral_symmetry(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg,
+) -> torch.Tensor:
+    """Penalize feet crossing the sagittal plane, measured in the robot's yaw-local frame.
+
+    Left foot (index 0) should have local-y > 0; right foot (index 1) local-y < 0.
+    Uses the yaw-only rotation of the base so the check is independent of heading
+    and works correctly when the robot turns or during sim-to-real transfer.
+
+    ``asset_cfg.body_names`` must list the left foot first, right foot second.
+    """
+    asset: Articulation = env.scene[asset_cfg.name]
+    # Foot positions in world frame, relative to base origin
+    base_pos_w = asset.data.root_pos_w  # (N, 3)
+    foot_pos_w = asset.data.body_pos_w[:, asset_cfg.body_ids, :]  # (N, 2, 3)
+    foot_rel_w = foot_pos_w - base_pos_w.unsqueeze(1)             # (N, 2, 3)
+
+    # Rotate into yaw-only local frame: undo yaw so +y_local = robot's left
+    base_quat = asset.data.root_quat_w  # (N, 4)
+    yaw_q = yaw_quat(base_quat)        # (N, 4) — yaw-only quaternion
+    # quat_apply_inverse expects (N, 3); loop over feet
+    left_local = quat_apply_inverse(yaw_q, foot_rel_w[:, 0, :])   # (N, 3)
+    right_local = quat_apply_inverse(yaw_q, foot_rel_w[:, 1, :])  # (N, 3)
+
+    left_y_local = left_local[:, 1]   # should be > 0
+    right_y_local = right_local[:, 1] # should be < 0
+    violation = torch.clamp(-left_y_local, min=0.0) + torch.clamp(right_y_local, min=0.0)
+    return violation
+
+
+def gait_phase_offset_reward(
+    env: ManagerBasedRLEnv,
+    sensor_cfg: SceneEntityCfg,
+    command_name: str = "base_velocity",
+    target_offset: float = 0.5,
+) -> torch.Tensor:
+    """Penalize deviation from anti-phase gait (left/right feet should alternate).
+
+    Estimates the gait phase of each foot from last_air_time / (air_time +
+    contact_time) and penalises when the phase difference between left and
+    right is far from *target_offset* (default 0.5 = half cycle).  Helps
+    break the symmetry-breaking bias where the policy always leads with the
+    same foot.
+
+    Use with a negative weight.  Only active when a velocity command is given.
+    """
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    air_time = contact_sensor.data.last_air_time[:, sensor_cfg.body_ids]       # (N, 2)
+    contact_time = contact_sensor.data.last_contact_time[:, sensor_cfg.body_ids]
+    period = (air_time + contact_time).clamp(min=0.1)
+    phase = air_time / period  # rough per-foot phase proxy in [0, 1]
+
+    phase_diff = torch.abs(phase[:, 0] - phase[:, 1])
+    # Wrap-aware distance to target_offset
+    phase_error = torch.min(
+        torch.abs(phase_diff - target_offset),
+        torch.abs(phase_diff - (1.0 - target_offset)),
+    )
+    cmd_active = torch.norm(env.command_manager.get_command(command_name)[:, :2], dim=1) > 0.1
+    return phase_error * cmd_active.float()
+
 
 def joint_coordination_rel(
     env: ManagerBasedRLEnv,

@@ -42,7 +42,7 @@ import legged_rl_lab.tasks.parkour.attention.mdp as mdp
 # FINETUNE toggle — set True to switch to AME-style finetune (stake-heavy
 # terrain mix + stronger gait-shaping rewards + no randomization).
 # =============================================================================
-FINETUNE = False
+FINETUNE = True
 
 
 # =============================================================================
@@ -141,7 +141,7 @@ class G1AttentionCommandsCfg(AttentionCommandsCfg):
     base_velocity = mdp.UniformLevelVelocityCommandCfg(
         asset_name="robot",
         resampling_time_range=(10.0, 10.0),
-        rel_standing_envs=0.0,
+        rel_standing_envs=0.05,
         rel_heading_envs=1.0,
         heading_command=True,
         heading_control_stiffness=0.5,
@@ -284,12 +284,12 @@ class G1AttentionRewardsCfg(AttentionRewardsCfg):
         params={
             "command_name": "base_velocity",
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
-            "threshold": 0.6,
+            "threshold": 0.8,
         },
     )
     feet_air_time_variance = RewTerm(
         func=mdp.air_time_variance_penalty,
-        weight=-0.1,       # AME weight (was -0.7)
+        weight=-0.1,     
         params={
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
         },
@@ -310,7 +310,7 @@ class G1AttentionRewardsCfg(AttentionRewardsCfg):
     feet_too_near = RewTerm(
         func=mdp.feet_too_near,
         weight=-1.0,       # AME weight (was -5.0)
-        params={"asset_cfg": SceneEntityCfg("robot", body_names=list(G1_FOOT_BODIES)), "threshold": 0.2},
+        params={"asset_cfg": SceneEntityCfg("robot", body_names=list(G1_FOOT_BODIES)), "threshold": 0.3},
     )
     # -- coordination
     joint_coordination = RewTerm(
@@ -366,6 +366,16 @@ class G1AttentionRewardsCfg(AttentionRewardsCfg):
                 "robot",
                 joint_names=[".*_ankle_pitch_joint", ".*_ankle_roll_joint"],
             ),
+        },
+    )
+    # Penalise always-leading-same-foot bias by requiring anti-phase alternation.
+    gait_phase_offset = RewTerm(
+        func=mdp.gait_phase_offset_reward,
+        weight=-0.3,
+        params={
+            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_ankle_roll_link"),
+            "command_name": "base_velocity",
+            "target_offset": 0.5,
         },
     )
 
@@ -467,7 +477,7 @@ def configure_g1_attention_finetune_terrain(terrain_generator: Any) -> None:
         ),
         "stakes3": HfAlternateColumnStakesTerrainCfg(
             proportion=0.2, stake_height_max=0.03, stake_side_range=(0.20, 0.40),
-            stake_gap_range=(0.05, 0.25), column_gap_range=(0.3, 0.2), column_jitter=0.0,
+            stake_gap_range=(0.05, 0.25), column_gap_range=(0.2, 0.4), column_jitter=0.0,
             holes_depth=-2.0, platform_width=2.0, border_width=0.25,
         ),
         "hf_gaps": HfConcentricGapTerrainCfg(
@@ -498,13 +508,13 @@ def configure_g1_attention_play_terrain(terrain_generator: Any) -> None:
     # ── Pick ONE terrain preset below ──────────────────────────────────────
 
     # [A] Alternate column stakes (current default, fixed params)
-    # terrain_generator.sub_terrains = {
-    #     "stakes": HfAlternateColumnStakesTerrainCfg(
-    #         proportion=0.5, stake_height_max=0.0, stake_side_range=(0.2, 0.2),
-    #         stake_gap_range=(0.3, 0.3), column_gap_range=(0.3, 0.3), column_jitter=0.0,
-    #         holes_depth=-2.0, platform_width=2.0, border_width=0.25,
-    #     ),
-    # }
+    terrain_generator.sub_terrains = {
+        "stakes": HfAlternateColumnStakesTerrainCfg(
+            proportion=0.5, stake_height_max=0.0, stake_side_range=(0.2, 0.2),
+            stake_gap_range=(0.3, 0.3), column_gap_range=(0.3, 0.3), column_jitter=0.0,
+            holes_depth=-2.0, platform_width=2.0, border_width=0.25,
+        ),
+    }
 
     # [B] Double column stakes
     # terrain_generator.sub_terrains = {
@@ -535,12 +545,12 @@ def configure_g1_attention_play_terrain(terrain_generator: Any) -> None:
     # }
 
     # [E] Concentric gaps
-    terrain_generator.sub_terrains = {
-        "concentric_gaps": HfConcentricGapTerrainCfg(
-            proportion=0.25, gap_width_range=(0.5, 0.5), ground_width_range=(0.5, 0.5),
-            ground_height_max=0.025, gap_depth=-2.0, platform_width=2.0, border_width=0.25,
-        ),
-    }
+    # terrain_generator.sub_terrains = {
+    #     "concentric_gaps": HfConcentricGapTerrainCfg(
+    #         proportion=0.25, gap_width_range=(0.5, 0.5), ground_width_range=(0.5, 0.5),
+    #         ground_height_max=0.025, gap_depth=-2.0, platform_width=2.0, border_width=0.25,
+    #     ),
+    # }
 
     # [F] Stairs up
     # terrain_generator.sub_terrains = {
@@ -660,6 +670,7 @@ class G1AttentionEnvCfg(AttentionEnvCfgMixin, AttentionBaseEnvCfg):
         self.rewards.action_rate_l2.weight = -0.05
         self.rewards.flat_orientation.weight = -5.0
         self.rewards.feet_air_time.weight = 0.5
+        self.rewards.feet_air_time.params["threshold"] = 0.8
         self.rewards.feet_air_time_variance.weight = -2.0
         self.rewards.feet_slide.weight = -0.3
         self.rewards.feet_stumble.weight = -5.0
@@ -668,6 +679,7 @@ class G1AttentionEnvCfg(AttentionEnvCfgMixin, AttentionBaseEnvCfg):
         self.rewards.joint_deviation_arms.weight = -0.3
         self.rewards.joint_deviation_waists.weight = -1.0
         self.rewards.joint_deviation_ankle.weight = -0.5
+        self.rewards.gait_phase_offset.weight = -1.0
 
         # Fix reset position to terrain center (AME finetune zeroes spawn noise)
         if hasattr(self.events, "reset_base") and self.events.reset_base is not None:

@@ -6,7 +6,7 @@ control_dt: 0.02
 sim_dt: 0.005
 control_decimation: 4
 
-policy_path: "exported_policy/g1_attention.onnx"
+policy_path: "exported_policy/g1_attention2.onnx"
 history_length: 1
 
 # Isaac-order PD gains, regenerated from UNITREE_G1_29DOF_CFG (unitree.py:348-405).
@@ -139,7 +139,7 @@ gamepad_slew_rate: [2.0, 4.0, 3.0]
 # single-side stepping. Clamp the low end to ~0.3 m/s so keyboard/gamepad
 # stays inside the trained command set.
 command_range:
-  lin_vel_x: [0.3, 1.0]
+  lin_vel_x: [0.0, 1.0]
   lin_vel_y: [0.0, 0.0]
   ang_vel_z: [-1.0, 1.0]
 
