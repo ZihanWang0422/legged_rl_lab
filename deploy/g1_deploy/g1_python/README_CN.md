@@ -306,19 +306,18 @@ python sim2real_mimic.py \
   --net lo \
   --domain_id 1 \
   --config_path config/g1_mimic.yaml \
-  --model g1_dance.onnx \
-  --debug_policy
+  --model g1_dance.onnx 
 ```
 
 跳跃策略把两处 `--model g1_dance.onnx` 改成 `--model g1_jump.onnx`。`sim2sim_mimic.py` 会先使用 `g1_flat_1.onnx` 站立稳定，机器人稳定后按手柄 **B** 切换到跟踪策略。
 
 #### 3.4 Attention：地形高度图 / Parkour 策略
 
-注意：当前 `../exported_policy/` 列表中如果还没有 `g1_attention.onnx`，需要先从训练结果导出并放到 `deploy/g1_deploy/exported_policy/g1_attention.onnx`，或者在命令里用 `--model /path/to/your_attention.onnx` 指向实际文件。
 
 纯 Sim2Sim，gamepad 输入：
 
 ```bash
+cd ~/legged_rl_lab/deploy/g1_deploy/g1_python
 python sim2sim_attention.py \
   --config g1_attention.yaml \
   --model g1_attention2.onnx \
@@ -338,6 +337,8 @@ python sim2sim_sdk2_bridge.py \
   --input gamepad \
   --joystick_type switch \
   --elastic_band \
+  --elastic_start_disabled \
+  --show_rays \
   --debug_lowcmd
 ```
 
@@ -349,34 +350,9 @@ python sim2real_attention.py \
   --net lo \
   --domain_id 1 \
   --config_path config/g1_attention.yaml \
-  --model g1_attention.onnx \
+  --model g1_attention2.onnx \
   --debug_policy
 ```
-
-`sim2real_attention.py` 当前使用 `--terrain_source flat`，即用平地高度图占位构造 attention 观测；真正上复杂地形前，需要接入真实高度图 / 深度感知来源，替换这个 flat terrain map。
-
-### 4. SDK2 闭环架构
-
-```text
-手柄 / 键盘
-  ↓
-sim bridge 写入 LowState.wireless_remote，并发布 rt/wirelesscontroller
-  ↓
-deploy controller 订阅 rt/lowstate，解析手柄和机器人状态
-  ↓
-deploy controller 推理 / PD，发布 rt/lowcmd
-  ↓
-sim bridge 订阅 rt/lowcmd
-  ↓
-LowCmd → MuJoCo actuator torque
-  ↓
-MuJoCo step
-  ↓
-sim bridge 发布新的 rt/lowstate
-```
-
-bridge 对齐 `unitree_mujoco/simulate_python`：从 MuJoCo `sensordata` 读取关节位置、速度、力矩和 IMU，订阅 `rt/lowcmd` 后按
-`tau + kp * (q_des - q_sensor) + kd * (dq_des - dq_sensor)` 写入 MuJoCo actuator。
 
 ## Sim2Real
 

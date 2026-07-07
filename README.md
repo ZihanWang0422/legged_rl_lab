@@ -463,9 +463,7 @@ python scripts/rsl_rl/train.py \
 python scripts/rsl_rl/play.py \
   --task LeggedRLLab-Isaac-Parkour-Attention-Unitree-G1-Play-v0 \
   --num_envs 2 \
-  #finetune ckpt
-  #--ckpt model_.pt
-  --ckpt model_48500.pt \
+  --ckpt model_39500.pt \
   --vis_attention \
   --save_attention_weights
 ```
@@ -709,7 +707,7 @@ python deploy/go2_deploy/sim2sim_handstand.py --model go2_handstand.pt
 <details>
 <summary><b>G1 Walk</b></summary>
 
-See [deploy/g1_deploy/README.md](deploy/g1_deploy/README.md) and [deploy/g1_deploy/g1_python/g1_python.md](deploy/g1_deploy/g1_python/g1_python.md) for details.
+See [deploy/g1_deploy/README.md](deploy/g1_deploy/README.md) and [deploy/g1_deploy/g1_python/README.md](deploy/g1_deploy/g1_python/README.md) for details. Chinese notes are available at [deploy/g1_deploy/g1_python/README_CN.md](deploy/g1_deploy/g1_python/README_CN.md).
 
 ```bash
 pip install mujoco
@@ -748,7 +746,7 @@ python deploy/go2_deploy/sim2real_walk.py --mode real --model policy.pt
 <details>
 <summary><b>G1 Walk</b></summary>
 
-See [deploy/g1_deploy/README.md](deploy/g1_deploy/README.md) and [deploy/g1_deploy/g1_python/g1_python.md](deploy/g1_deploy/g1_python/g1_python.md) for details.
+See [deploy/g1_deploy/README.md](deploy/g1_deploy/README.md) and [deploy/g1_deploy/g1_python/README.md](deploy/g1_deploy/g1_python/README.md) for details. Chinese notes are available at [deploy/g1_deploy/g1_python/README_CN.md](deploy/g1_deploy/g1_python/README_CN.md).
 
 ```bash
 # Dependency: cyclonedds + unitree_sdk2_python (see README)

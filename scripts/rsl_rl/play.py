@@ -9,6 +9,7 @@
 
 import argparse
 import os
+import re
 import sys
 
 RSL_RL_PATH = os.path.abspath(
@@ -50,7 +51,10 @@ parser.add_argument(
     "--ckpt",
     type=str,
     default=None,
-    help="Checkpoint file. Accepts a path or a file name under the ckpt/ directory (e.g. 'model.pt').",
+    help=(
+        "Checkpoint file or directory. Accepts a path, a directory, or a file name under the ckpt/ directory "
+        "(e.g. 'model.pt' or 'g1_run/')."
+    ),
 )
 # append RSL-RL cli arguments
 cli_args.add_rsl_rl_args(parser)
@@ -103,6 +107,41 @@ from isaaclab_tasks.utils.hydra import hydra_task_config
 # PLACEHOLDER: Extension template (do not remove this comment)
 
 
+def _checkpoint_sort_key(path: str) -> tuple[int, str]:
+    """Sort model checkpoints by their trailing iteration number when available."""
+    basename = os.path.basename(path)
+    match = re.search(r"model_(\d+)\.(?:pt|pth)$", basename)
+    if match:
+        return int(match.group(1)), basename
+    return -1, basename
+
+
+def _find_latest_checkpoint_in_dir(ckpt_dir: str) -> str:
+    """Return the latest checkpoint file from a directory."""
+    candidates = [
+        os.path.join(ckpt_dir, name)
+        for name in os.listdir(ckpt_dir)
+        if os.path.isfile(os.path.join(ckpt_dir, name)) and name.endswith((".pt", ".pth"))
+    ]
+    if not candidates:
+        raise FileNotFoundError(f"No .pt or .pth checkpoint files found in directory: {ckpt_dir}")
+    return max(candidates, key=_checkpoint_sort_key)
+
+
+def _resolve_ckpt_path(ckpt_arg: str | None) -> str:
+    """Resolve a checkpoint from an explicit path, ckpt/ file, or ckpt/ directory."""
+    ckpt_path = os.path.expanduser(ckpt_arg) if ckpt_arg else "ckpt"
+    if not os.path.isabs(ckpt_path) and not os.path.exists(ckpt_path):
+        ckpt_path = os.path.join("ckpt", ckpt_arg)
+
+    if os.path.isdir(ckpt_path):
+        ckpt_path = _find_latest_checkpoint_in_dir(ckpt_path)
+
+    if not os.path.isfile(ckpt_path):
+        raise FileNotFoundError(f"Checkpoint not found: {ckpt_path}")
+    return os.path.abspath(ckpt_path)
+
+
 @hydra_task_config(args_cli.task, args_cli.agent)
 def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
     """Play with RSL-RL agent."""
@@ -133,14 +172,12 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
             print("[INFO] Unfortunately a pre-trained checkpoint is currently unavailable for this task.")
             return
     elif args_cli.ckpt:
-        ckpt_path = args_cli.ckpt
-        if not os.path.exists(ckpt_path):
-            ckpt_path = os.path.join("ckpt", args_cli.ckpt)
-        if not os.path.exists(ckpt_path):
-            raise FileNotFoundError(f"Checkpoint not found: {ckpt_path}")
-        resume_path = os.path.abspath(ckpt_path)
+        resume_path = _resolve_ckpt_path(args_cli.ckpt)
     elif args_cli.checkpoint:
         resume_path = retrieve_file_path(args_cli.checkpoint)
+    elif not os.path.isdir(log_root_path) and os.path.isdir("ckpt"):
+        print(f"[INFO] Experiment directory not found; falling back to local ckpt/ directory.")
+        resume_path = _resolve_ckpt_path(None)
     else:
         resume_path = get_checkpoint_path(log_root_path, agent_cfg.load_run, agent_cfg.load_checkpoint)
 
