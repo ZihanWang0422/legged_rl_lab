@@ -194,7 +194,7 @@ python sim2real_walk.py \
 | `g1_run.onnx` | AMP 跑步策略 | `sim2sim_amp.py` | `obs [1, 384]` | `actions [1, 29]` |
 | `g1_dance.onnx` | 动作跟踪舞蹈策略 | `sim2sim_mimic.py` | `obs [1, 160]`，`time_step [1, 1]` | `actions [1, 29]` 以及参考状态 |
 | `g1_jump.onnx` | 动作跟踪跳跃策略 | `sim2sim_mimic.py` | `obs [1, 160]`，`time_step [1, 1]` | `actions [1, 29]` 以及参考状态 |
-| `g1_attention.onnx` | Attention 地形 / Parkour 策略 | `sim2sim_attention.py` | `obs [1, 2175]` | `actions [1, 29]` |
+| `g1_attention1.onnx` / `g1_attention2.onnx` | Attention 地形 / Parkour 策略 | `sim2sim_attention.py` | `obs [1, 2175]` | `actions [1, 29]` |
 
 当前 `../exported_policy/` 文件夹中没有 `g1_amp.onnx` 或 `policy.onnx`。请使用上表列出的模型名称。
 
@@ -313,7 +313,6 @@ python sim2real_mimic.py \
 
 #### 3.4 Attention：地形高度图 / Parkour 策略
 
-
 纯 Sim2Sim，gamepad 输入：
 
 ```bash
@@ -322,8 +321,25 @@ python sim2sim_attention.py \
   --config g1_attention.yaml \
   --model g1_attention2.onnx \
   --input gamepad \
-  --gamepad_type gamesir \
-  --show_rays
+  --gamepad_type gamesir
+```
+
+键盘输入：
+
+```bash
+python sim2sim_attention.py \
+  --config g1_attention.yaml \
+  --model g1_attention2.onnx \
+  --input keyboard
+```
+
+验证配置和 ONNX 维度（不启动 viewer）：
+
+```bash
+python sim2sim_attention.py \
+  --config g1_attention.yaml \
+  --model g1_attention2.onnx \
+  --check
 ```
 
 SDK2 联调，终端 1：
@@ -337,8 +353,6 @@ python sim2sim_sdk2_bridge.py \
   --input gamepad \
   --joystick_type switch \
   --elastic_band \
-  --elastic_start_disabled \
-  --show_rays \
   --debug_lowcmd
 ```
 
@@ -353,6 +367,17 @@ python sim2real_attention.py \
   --model g1_attention2.onnx \
   --debug_policy
 ```
+
+Attention 策略使用 MuJoCo `mj_ray` 在纯 Sim2Sim 模式下扫描机器人周围地形。在 SDK2 闭环联调
+模式下，bridge 运行 MuJoCo，地形扫描在 bridge 侧完成（bridge 发布 `LowState`；终端 2 使用
+平坦占位地图）。真机部署时保持默认 `--terrain_source flat`，因为真实机器人没有地形扫描传感器。
+
+Attention 策略 `history_length=1`，使用单帧观测 `proprio(96) + terrain_map(2079) = 2175` 维。
+地形图是 33×21 的网格，每个点为传感器坐标系下的 `[local_x, local_y, local_z]`。MuJoCo 中 z 值
+来自射线追踪；真机上使用平坦地形图作为占位。
+
+手柄控制与 Walk 策略相同。如果机器人抖动或不稳，查看 `[AttentionDebug]` 输出：`grav` 应接近
+`[0, 0, -1]`，`scan_z` 显示地形高度范围，action 数值应在训练范围内。
 
 ## Sim2Real
 
@@ -460,7 +485,7 @@ python sim2real_attention.py \
   --net enp108s0 \
   --domain_id 0 \
   --config_path config/g1_attention.yaml \
-  --model g1_attention.onnx
+  --model g1_attention2.onnx
 ```
 
 ##### 4.1 零力矩状态

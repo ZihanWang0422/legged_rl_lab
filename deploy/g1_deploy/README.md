@@ -80,6 +80,7 @@ If the detected indices differ from this table, update the `gamepad_btn_*` / `ax
 | `g1_run.onnx` | AMP run policy | `sim2sim_amp.py` | `obs [1, 384]` | `actions [1, 29]` |
 | `g1_dance.onnx` | Motion tracking dance policy | `sim2sim_mimic.py` | `obs [1, 160]`, `time_step [1, 1]` | `actions [1, 29]` plus reference states |
 | `g1_jump.onnx` | Motion tracking jump policy | `sim2sim_mimic.py` | `obs [1, 160]`, `time_step [1, 1]` | `actions [1, 29]` plus reference states |
+| `g1_attention1.onnx` / `g1_attention2.onnx` | Attention terrain / parkour policy | `sim2sim_attention.py` | `obs [1, 2175]` | `actions [1, 29]` |
 
 The current `exported_policy/` folder does not contain `g1_amp.onnx` or `policy.onnx`. Use the model names listed above.
 
@@ -262,6 +263,73 @@ Keyboard:
 
 Policy switches are printed in the terminal with messages such as `[PolicySwitch] Active policy: N`.
 
+### 4. Attention Terrain / Parkour
+
+Use `g1_attention.yaml` with `g1_attention1.onnx` or `g1_attention2.onnx`. The attention policy uses MuJoCo ray casting (`mj_ray`) to scan terrain around the robot. The observation is a single frame of `proprio(96) + terrain_map(33×21×3=2079) = 2175` dimensions.
+
+Gamepad:
+
+```bash
+python deploy/g1_deploy/g1_python/sim2sim_attention.py \
+  --config g1_attention.yaml \
+  --model g1_attention2.onnx \
+  --input gamepad \
+  --gamepad_type gamesir
+```
+
+Keyboard:
+
+```bash
+python deploy/g1_deploy/g1_python/sim2sim_attention.py \
+  --config g1_attention.yaml \
+  --model g1_attention2.onnx \
+  --input keyboard
+```
+
+Validate config and ONNX dimensions:
+
+```bash
+python deploy/g1_deploy/g1_python/sim2sim_attention.py \
+  --config g1_attention.yaml \
+  --model g1_attention2.onnx \
+  --check
+```
+
+Debug with per-joint output:
+
+```bash
+python deploy/g1_deploy/g1_python/sim2sim_attention.py \
+  --config g1_attention.yaml \
+  --model g1_attention2.onnx \
+  --input gamepad \
+  --debug_policy \
+  --debug_interval 1.0
+```
+
+Controls:
+
+Gamepad:
+
+| Input | Function |
+| --- | --- |
+| Left joystick up | `vx` forward. Backward command is disabled in the current `g1_attention.yaml`. |
+| Left joystick left/right | `vy` strafe |
+| Right joystick left/right | `vyaw` turn |
+| **RB + A** | Attention policy |
+| **RB + B/X/Y** | Policy slots 1/2/3 placeholders |
+| **Menu / Start** | Exit |
+
+Keyboard:
+
+| Input | Function |
+| --- | --- |
+| **W/S** or up/down arrows | Increase/decrease `vx` |
+| **A/D** | Increase/decrease `vy` |
+| **Q/E** or left/right arrows | Increase/decrease `vyaw` |
+| **Space** or **0** | Zero velocity command |
+| **1/2/3/4** | Switch policy slot |
+| **X** or **Esc** | Exit |
+
 ### Policy Switching
 
 Each Sim2Sim script defines a `policy_registry` near the bottom of the file. Edit the YAML path and ONNX filename there to register new policy slots.
@@ -274,6 +342,17 @@ policy_registry = {
     2: (mimic_config, args.model),        # 2 / B: main mimic model
     3: (mimic_config, 'g1_jump.onnx'),    # 3 / X
     4: (mimic_config, 'g1_dance.onnx'),   # 4 / Y
+}
+```
+
+Current attention registry structure:
+
+```python
+policy_registry = {
+    1: (attention_config,  args.model),       # 1 / A: attention policy
+    2: (resolve_config('policy1.yaml'),  'policy1.onnx'),  # placeholder
+    3: (resolve_config('policy2.yaml'),  'policy2.onnx'),  # placeholder
+    4: (resolve_config('policy3.yaml'),  'policy3.onnx'),  # placeholder
 }
 ```
 
@@ -416,7 +495,33 @@ Assume the Ethernet interface is `enp108s0`.
 
 ```bash
 cd deploy/g1_deploy/g1_python
-python sim2real_walk.py
+
+# Walk
+python sim2real_walk.py \
+  --net enp108s0 \
+  --domain_id 0 \
+  --config_path config/g1_walk.yaml
+
+# AMP walk (use g1_run.onnx for running)
+python sim2real_amp.py \
+  --net enp108s0 \
+  --domain_id 0 \
+  --config_path config/g1_amp.yaml \
+  --model g1_walk.onnx
+
+# Mimic dance (use g1_jump.onnx for jumping)
+python sim2real_mimic.py \
+  --net enp108s0 \
+  --domain_id 0 \
+  --config_path config/g1_mimic.yaml \
+  --model g1_dance.onnx
+
+# Attention terrain / parkour
+python sim2real_attention.py \
+  --net enp108s0 \
+  --domain_id 0 \
+  --config_path config/g1_attention.yaml \
+  --model g1_attention2.onnx
 ```
 
 ##### 4.1 Zero-torque state

@@ -205,7 +205,7 @@ Available exported policies:
 | `g1_run.onnx` | AMP running policy | `sim2sim_amp.py` | `obs [1, 384]` | `actions [1, 29]` |
 | `g1_dance.onnx` | Mimic dance policy | `sim2sim_mimic.py` | `obs [1, 160]`, `time_step [1, 1]` | `actions [1, 29]` and reference state |
 | `g1_jump.onnx` | Mimic jump policy | `sim2sim_mimic.py` | `obs [1, 160]`, `time_step [1, 1]` | `actions [1, 29]` and reference state |
-| `g1_attention.onnx` | Attention terrain / parkour policy | `sim2sim_attention.py` | `obs [1, 2175]` | `actions [1, 29]` |
+| `g1_attention1.onnx` / `g1_attention2.onnx` | Attention terrain / parkour policy | `sim2sim_attention.py` | `obs [1, 2175]` | `actions [1, 29]` |
 
 ### Walk
 
@@ -318,9 +318,9 @@ policy after the robot is stable and gamepad **B** is pressed.
 
 ### Attention Terrain / Parkour
 
-If `../exported_policy/` does not contain `g1_attention.onnx`, export it from the
-training result and place it under `deploy/g1_deploy/exported_policy/`, or pass an
-absolute path with `--model /path/to/your_attention.onnx`.
+If `../exported_policy/` does not contain `g1_attention1.onnx` or `g1_attention2.onnx`,
+export it from the training result and place it under `deploy/g1_deploy/exported_policy/`,
+or pass an absolute path with `--model /path/to/your_attention.onnx`.
 
 Plain Sim2Sim with gamepad input:
 
@@ -329,24 +329,36 @@ python sim2sim_attention.py \
   --config g1_attention.yaml \
   --model g1_attention2.onnx \
   --input gamepad \
-  --gamepad_type gamesir \
-  --show_rays
+  --gamepad_type gamesir
 ```
 
-Pure Sim2Sim fixed-command alignment test, without a viewer:
+Keyboard input:
 
 ```bash
 python sim2sim_attention.py \
   --config g1_attention.yaml \
   --model g1_attention2.onnx \
-  --input const \
-  --const_vx 0.25 \
-  --const_warmup 2.0 \
-  --const_ramp 1.0 \
-  --headless \
-  --duration 8 \
+  --input keyboard
+```
+
+Validate config and ONNX dimensions without opening the viewer:
+
+```bash
+python sim2sim_attention.py \
+  --config g1_attention.yaml \
+  --model g1_attention2.onnx \
+  --check
+```
+
+Debug policy with per-joint prints:
+
+```bash
+python sim2sim_attention.py \
+  --config g1_attention.yaml \
+  --model g1_attention2.onnx \
+  --input gamepad \
   --debug_policy \
-  --debug_interval 0.2
+  --debug_interval 1.0
 ```
 
 SDK2 Terminal 1:
@@ -359,9 +371,6 @@ python sim2sim_sdk2_bridge.py \
   --input gamepad \
   --joystick_type switch \
   --elastic_band \
-  --elastic_start_disabled \
-  --hold_default_when_idle \
-  --show_rays \
   --debug_lowcmd
 ```
 
@@ -373,72 +382,23 @@ python sim2real_attention.py \
   --domain_id 1 \
   --config_path config/g1_attention.yaml \
   --model g1_attention2.onnx \
-  --terrain_source sdk2_mujoco \
   --debug_policy
 ```
 
-For SDK2 local alignment, `--show_rays` belongs to Terminal 1 because the MuJoCo
-viewer is owned by the bridge. `--terrain_source sdk2_mujoco` belongs to Terminal 2
-so the attention policy receives a MuJoCo ray-scanned terrain map instead of a flat
-placeholder map.
+The attention policy uses MuJoCo `mj_ray` in plain Sim2Sim mode to scan terrain
+around the robot. In SDK2 closed-loop mode, the bridge runs MuJoCo and the terrain
+scan happens inside the bridge (the bridge publishes `LowState`; terrain scan is
+handled on Terminal 2 side with a flat placeholder map). For the real robot, keep
+`--terrain_source flat` (the default) since there is no physical terrain scanner.
 
-The SDK2 attention controller starts in the flat stabilization policy after **A**.
-Press **B** to switch to the attention terrain policy after the robot is stable.
-Press **A** again to return to flat stabilization. This keeps the attention policy
-closer to its training distribution instead of using deploy-only action clipping or
-smoothing.
+The attention policy has `history_length=1` and takes a single-frame observation of
+`proprio(96) + terrain_map(2079) = 2175` dimensions. The terrain map is a 33×21 grid
+of `[local_x, local_y, local_z]` points in the sensor-body frame. In MuJoCo, z comes
+from ray casting; on the real robot, a flat terrain map is used as a placeholder.
 
-To reproduce the pure `sim2sim_attention.py` startup path more directly, start the
-attention policy immediately after **A**:
-
-```bash
-python sim2real_attention.py \
-  --net lo \
-  --domain_id 1 \
-  --config_path config/g1_attention.yaml \
-  --model g1_attention2.onnx \
-  --terrain_source sdk2_mujoco \
-  --start_policy attention \
-  --debug_policy
-```
-
-Use this mode when checking whether the remaining shake comes from the B-key
-flat-to-attention switch state, or from the attention observations themselves.
-For diagnosis only, add `--policy_ramp_time 0.8` to check whether the failure is
-caused by the first few target-position jumps; the default remains the config value.
-If the robot is stable on flat ground but destabilizes when approaching stairs, first
-run a slow approach test:
-
-```bash
-python sim2real_attention.py \
-  --net lo \
-  --domain_id 1 \
-  --config_path config/g1_attention.yaml \
-  --model g1_attention2.onnx \
-  --terrain_source sdk2_mujoco \
-  --start_policy attention \
-  --debug_policy \
-  --stair_safe
-```
-
-`--stair_safe` keeps the default config unchanged and applies the diagnostic preset
-`policy_ramp_time=0.8`, `max_vx=0.35`, and `vx_slew=0.4`.
-
-If the robot shakes after switching with **B**, compare `[AttentionDebug]` with
-`[LowCmdDebug]`. Large `target_jump_max` or `daction_max` points to a
-policy/observation jump. Large `q_err_max` with large `ctrl_raw` points to PD
-tracking or joint-order mismatch. Persistent `clipped` means the MuJoCo actuator
-limits are being saturated. For SDK2 alignment, prefer `--elastic_start_disabled`:
-the support band is available for rescue/debug with viewer key **9**, but it does
-not apply force during the policy run. The support force changes the base dynamics
-seen by the policy, so an always-on band is not aligned with pure Sim2Sim. Keep
-`--hold_default_when_idle` enabled for local SDK2 tests: sim2real publishes an
-all-zero command while waiting for Start, and without an idle hold the MuJoCo robot
-falls before the controller moves it to the default pose.
-
-The flat walking policy does not consume the terrain scan. If ray dots are visible
-while the flat policy walks toward stairs, those dots are only visualization; switch
-to the attention policy for terrain-aware behavior.
+Gamepad controls are the same as the Walk policy. If the robot shakes or destabilizes,
+check `[AttentionDebug]` output: `grav` should be close to `[0, 0, -1]`, `scan_z` should
+show the terrain height range, and action values should be within the training range.
 
 ## Sim2Real
 
@@ -530,12 +490,12 @@ python sim2real_attention.py \
   --net enp108s0 \
   --domain_id 0 \
   --config_path config/g1_attention.yaml \
-  --model g1_attention.onnx
+  --model g1_attention2.onnx
 ```
 
-For the real robot, keep the default `--terrain_source flat` unless a real height-map
-or depth source has been integrated. `--terrain_source sdk2_mujoco` is only for local
-SDK2 MuJoCo alignment.
+For the real robot, the default `--terrain_source flat` fills the terrain map with a
+flat floor at `init_height`. Use `--terrain_base_height` to override the flat-floor
+reference height if the robot's standing height differs from the config default.
 
 ### 5. Real-Robot Operation
 
