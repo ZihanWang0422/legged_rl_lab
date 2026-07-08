@@ -368,17 +368,6 @@ python sim2real_attention.py \
   --debug_policy
 ```
 
-Attention 策略使用 MuJoCo `mj_ray` 在纯 Sim2Sim 模式下扫描机器人周围地形。在 SDK2 闭环联调
-模式下，bridge 运行 MuJoCo，地形扫描在 bridge 侧完成（bridge 发布 `LowState`；终端 2 使用
-平坦占位地图）。真机部署时保持默认 `--terrain_source flat`，因为真实机器人没有地形扫描传感器。
-
-Attention 策略 `history_length=1`，使用单帧观测 `proprio(96) + terrain_map(2079) = 2175` 维。
-地形图是 33×21 的网格，每个点为传感器坐标系下的 `[local_x, local_y, local_z]`。MuJoCo 中 z 值
-来自射线追踪；真机上使用平坦地形图作为占位。
-
-手柄控制与 Walk 策略相同。如果机器人抖动或不稳，查看 `[AttentionDebug]` 输出：`grav` 应接近
-`[0, 0, -1]`，`scan_z` 显示地形高度范围，action 数值应在训练范围内。
-
 ## Sim2Real
 
 ### 安装

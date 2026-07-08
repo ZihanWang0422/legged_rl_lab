@@ -508,13 +508,13 @@ def configure_g1_attention_play_terrain(terrain_generator: Any) -> None:
     # ── Pick ONE terrain preset below ──────────────────────────────────────
 
     # [A] Alternate column stakes (current default, fixed params)
-    terrain_generator.sub_terrains = {
-        "stakes": HfAlternateColumnStakesTerrainCfg(
-            proportion=0.5, stake_height_max=0.0, stake_side_range=(0.2, 0.2),
-            stake_gap_range=(0.3, 0.3), column_gap_range=(0.3, 0.3), column_jitter=0.0,
-            holes_depth=-2.0, platform_width=2.0, border_width=0.25,
-        ),
-    }
+    # terrain_generator.sub_terrains = {
+    #     "stakes": HfAlternateColumnStakesTerrainCfg(
+    #         proportion=0.5, stake_height_max=0.0, stake_side_range=(0.2, 0.2),
+    #         stake_gap_range=(0.3, 0.3), column_gap_range=(0.3, 0.3), column_jitter=0.0,
+    #         holes_depth=-2.0, platform_width=2.0, border_width=0.25,
+    #     ),
+    # }
 
     # [B] Double column stakes
     # terrain_generator.sub_terrains = {
@@ -561,12 +561,12 @@ def configure_g1_attention_play_terrain(terrain_generator: Any) -> None:
     # }
 
     # [G] Stairs down
-    # terrain_generator.sub_terrains = {
-    #     "stairs_down": terrain_gen.MeshInvertedPyramidStairsTerrainCfg(
-    #         proportion=0.125, step_height_range=(0.10, 0.25), step_width=0.30,
-    #         platform_width=2.0, border_width=0.4, holes=False,
-    #     ),
-    # }
+    terrain_generator.sub_terrains = {
+        "stairs_down": terrain_gen.MeshInvertedPyramidStairsTerrainCfg(
+            proportion=0.125, step_height_range=(0.10, 0.20), step_width=0.30,
+            platform_width=2.0, border_width=0.4, holes=False,
+        ),
+    }
     # [H] Radial plank bridge — center platform with narrow planks radiating outward like spokes
     # terrain_generator.sub_terrains = {
     #     "radial_plank_bridge": HfRadialPlankBridgeTerrainCfg(
